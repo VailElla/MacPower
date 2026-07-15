@@ -1,6 +1,20 @@
 # MacPower 维护者发布流程
 
-本流程用于创建可公开分发的 macOS ZIP。它故意不提供 ad-hoc 签名回退：任何前置条件缺失都会在构建或上传前失败。
+本文同时记录未经公证的免费测试包和受信任的 Developer ID 发行包。受信任流程故意不提供 ad-hoc 签名回退：任何前置条件缺失都会在构建或上传前失败。
+
+## 免费测试包
+
+没有 Apple Developer Program 会员资格时，只能生成明确标记且未经公证的拖动安装 DMG 和备用 ZIP：
+
+~~~bash
+./script/package_test_release.sh
+~~~
+
+主要输出为 `release/MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS-arm64.dmg` 及同名 `.sha256` 文件；同时保留 ZIP 备用包。DMG 内含应用、指向 `/Applications` 的快捷方式和安全提示。脚本会确认应用保持 ad-hoc 签名、Gatekeeper 不接受该包、校验和匹配，并挂载 DMG、重新解压 ZIP 验证内容。
+
+DMG 和 ZIP 都不是受信任的正式发行包。发布页面必须明确说明它们未经 Apple 公证，首次运行需要用户在“系统设置 → 隐私与安全性”中手动选择“仍要打开”。不得删除文件名中的 `UNNOTARIZED`，也不得把 SHA-256 描述为发布者身份证明。
+
+下面的 Developer ID 流程与免费测试包相互独立，不能自动降级到 ad-hoc 签名。
 
 ## 前置条件
 

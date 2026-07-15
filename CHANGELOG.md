@@ -16,6 +16,7 @@
 - 权限、读取或切换失败后停止自动写入，避免持续重试。
 - 增加菜单栏内的软件版本与测试版标识。
 - 提供 SwiftPM 测试、本地 `.app` 构建、ad-hoc 开发签名验证，以及 fail-closed 的发行打包脚本。
+- 增加明确标记为 `UNNOTARIZED` 的免费拖动安装 DMG、备用 ZIP、SHA-256 校验和、挂载与解压后的签名复核。
 - 发行打包要求 Developer ID、Hardened Runtime、Apple 公证、装订票据与 Gatekeeper 验证；缺少任一维护者配置时不生成可分发压缩包。
 
 ### 已知限制

@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)"
 PACKAGE_SCRIPT="$ROOT_DIR/script/package_release.sh"
+TEST_PACKAGE_SCRIPT="$ROOT_DIR/script/package_test_release.sh"
 BUILD_SCRIPT="$ROOT_DIR/script/build_and_run.sh"
 
 assert_contains() {
@@ -53,5 +54,11 @@ assert_contains "$PACKAGE_SCRIPT" "verify_release.sh"
 assert_contains "$BUILD_SCRIPT" "--options runtime"
 assert_contains "$BUILD_SCRIPT" "Authority=Developer ID Application:"
 assert_contains "$ROOT_DIR/script/verify_release.sh" "Authority=Developer ID Application:"
+assert_contains "$TEST_PACKAGE_SCRIPT" "UNNOTARIZED"
+assert_contains "$TEST_PACKAGE_SCRIPT" "Signature=adhoc"
+assert_contains "$TEST_PACKAGE_SCRIPT" "spctl --assess"
+assert_contains "$TEST_PACKAGE_SCRIPT" "hdiutil create"
+assert_contains "$TEST_PACKAGE_SCRIPT" "hdiutil verify"
+assert_contains "$TEST_PACKAGE_SCRIPT" "DMG_MOUNT_DIR/Applications"
 
 echo "Release policy regression checks passed."

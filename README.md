@@ -11,7 +11,7 @@
 <p align="center"><strong>v0.1.0 · 初代测试版</strong></p>
 
 > [!IMPORTANT]
-> 这是预发布测试版本，适合本地测试和代码审阅。公开仓库当前只发布源码：本地构建得到的是仅限本机开发的 ad-hoc 应用包，不能作为可分发安装包。发行脚本缺少 Developer ID 签名、团队 ID 或 Apple 公证配置时会直接拒绝打包。
+> 这是预发布测试版本，适合本地测试和代码审阅。项目可以生成明确标记为 `UNNOTARIZED` 的免费测试包，但它使用 ad-hoc 签名、未经 Apple 公证，macOS 会阻止首次直接打开。受信任的发行脚本仍要求 Developer ID 签名、团队 ID 和 Apple 公证配置，缺少任一条件都会拒绝打包。
 
 ## 功能
 
@@ -83,6 +83,33 @@ MacPower 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行下
 
 测试覆盖决策边界、15 秒 CPU 窗口、手动修改后的可选暂停、失败停止、模式与亮度恢复和并发切换保护。系统依赖在测试中由 test doubles 替代，不会更改当前 Mac 的真实电源模式或屏幕亮度；同时会验证发行脚本在缺少签名或公证配置时不会开始构建或生成归档。
 
+## 免费测试包（未经 Apple 公证）
+
+没有 Apple Developer Program 会员资格时，可以生成明确标记为 `UNNOTARIZED` 的拖动安装 DMG 和备用 ZIP：
+
+```bash
+./script/package_test_release.sh
+```
+
+脚本会以 Release 配置构建并应用 ad-hoc 签名，确认 Gatekeeper 不会误把它当作受信任发行版；DMG 内含 `MacPower.app`、指向 `/Applications` 的拖动安装快捷方式和安全提示。脚本还会挂载 DMG 并复核其中的应用与快捷方式：
+
+- `release/MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS-arm64.dmg`
+- `release/MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS-arm64.dmg.sha256`
+- `release/MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS.zip`
+- `release/MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS.zip.sha256`
+
+当前脚本在本机生成 Apple Silicon `arm64` 产物。下载方应先核对 SHA-256，再打开 DMG，把 `MacPower.app` 拖到 `Applications`。首次打开会被 macOS 阻止；只有确认下载来源和校验值可信时，才可在“系统设置 → 隐私与安全性”中选择“仍要打开”。这项手动放行只是在当前 Mac 上增加例外，不能替代 Developer ID 签名或 Apple 公证。
+
+把 DMG、ZIP 和对应的 `.sha256` 文件放在同一目录后运行：
+
+```bash
+cd release
+shasum -a 256 -c MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS-arm64.dmg.sha256
+shasum -a 256 -c MacPower-v0.1.0-beta.1-UNNOTARIZED-macOS.zip.sha256
+```
+
+SHA-256 只用于发现传输损坏或文件变化，不能证明发布者身份。不要将该测试包描述为“已签名”“已公证”或“受 Gatekeeper 信任”的正式发行版。
+
 ## 受信任的发行包（仅维护者）
 
 `script/package_release.sh` 只允许生成可验证的 Developer ID 签名和 Apple 公证产物。签名前，将下列值从维护者本机的钥匙串和 Apple Developer 账户配置到环境中；不要把证书、Apple ID 密码、App 专用密码或 API 密钥写入仓库：
@@ -101,7 +128,7 @@ export MACPOWER_NOTARY_PROFILE='macpower-notary'
 
 SHA-256 文件只用于传输完整性检查，不能证明发布者身份。下载方应同时运行 `script/verify_release.sh ARCHIVE TEAM_ID SHA256_FILE`，它会校验校验和、代码签名、Developer Team ID、装订的公证票据和 Gatekeeper。详细的维护者流程见 [RELEASING.md](RELEASING.md)。
 
-当前 GitHub 仓库只发布 MIT 许可的源码，尚未发布任何二进制 GitHub Release；只有上述流程完整通过后，才可上传 ZIP 和校验和。
+当前 GitHub 仓库尚未发布受信任的二进制 GitHub Release；只有上述流程完整通过后，才可把不含 `UNNOTARIZED` 标记的 ZIP 描述为正式发行包。免费测试 DMG 和 ZIP 必须始终保留 `UNNOTARIZED` 标记及对应警告。
 
 ## 权限与安全边界
 
@@ -114,8 +141,8 @@ MacPower 只调用固定路径 `/usr/bin/pmset`，参数由内部枚举生成，
 ## 已知限制
 
 - 仅支持 macOS 13 及以上版本。
-- 从源码构建的 `dist/MacPower.app` 是 ad-hoc 开发包，不能作为可分发 Release。
-- 在配置 Developer ID 身份和 Apple 公证钥匙串 profile 前，不会发布二进制 GitHub Release。
+- 从源码构建的 `dist/MacPower.app`、免费测试 DMG 和 ZIP 都是 ad-hoc 包，未经 Apple 公证，需要用户手动允许首次打开。
+- 在配置 Developer ID 身份和 Apple 公证钥匙串 profile 前，不会发布受 Gatekeeper 信任的二进制 GitHub Release。
 - High Power 只在系统实际报告支持时可选。
 - 亮度恢复目前只覆盖内建屏幕；外接显示器的 DDC/CI 亮度不在首版范围内。
 - 首版没有电池百分比规则、按应用规则、定时计划、通知、学习功能或高级诊断界面。
