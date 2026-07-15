@@ -1,5 +1,6 @@
 import Foundation
 import GovernorCore
+import GovernorHelperSupport
 
 /// Reads and writes the real macOS power mode through `/usr/bin/pmset`.
 ///
@@ -8,22 +9,22 @@ import GovernorCore
 /// second `pmset -g live` read before this method reports success.
 public actor PMSetPowerSystemClient: PowerSystemClient {
     private let commandRunner: PMSetCommandRunner
-    private let authorizationExecutor: SessionAuthorizationExecutor
+    private let helperClient: PMSetHelperClient
     private var switchInFlight = false
 
     public init() {
         commandRunner = PMSetCommandRunner()
-        authorizationExecutor = SessionAuthorizationExecutor()
+        helperClient = PMSetHelperClient()
     }
 
-    /// Requests administrator approval once for this client session.
+    /// Registers the bundled daemon only when it has never been registered.
     ///
-    /// Call this only in direct response to the user enabling automation. A
-    /// denial is remembered for this process lifetime, so later evaluations do
-    /// not repeatedly present an authorization dialog.
+    /// Call this only in direct response to enabling automation. Once approved,
+    /// Service Management retains the daemon across app restarts and lock/unlock
+    /// events; timer evaluations and later enables never request a new password.
     public func authorize() async throws {
         do {
-            try await authorizationExecutor.authorizeOnce()
+            try await GovernorPowerHelperInstaller.system.ensureAvailable()
         } catch {
             throw PowerSystemClientFailure.permissionDenied
         }
@@ -68,12 +69,15 @@ public actor PMSetPowerSystemClient: PowerSystemClient {
                 throw PowerSystemClientFailure.requestFailed
             }
 
-            let arguments = try PMSetArguments.write(
-                source: source.parsedValue,
-                modeValue: mode.powermodeValue,
-                controlStyle: controlStyle.parsedValue
+            let request = GovernorPowerModeRequest(
+                sourceRawValue: source.helperRawValue,
+                modeRawValue: mode.powermodeValue,
+                controlStyleRawValue: controlStyle.helperRawValue
             )
-            _ = try await authorizationExecutor.execute(arguments: arguments)
+            // Validate the same closed allow-list locally before the daemon
+            // repeats that validation at its root boundary.
+            _ = try PrivilegedPMSetCommand.arguments(for: request)
+            try await helperClient.apply(request)
 
             let confirmed = try await readSnapshotUnmapped()
             guard confirmed.mode == mode else {
@@ -81,9 +85,9 @@ public actor PMSetPowerSystemClient: PowerSystemClient {
             }
         } catch let failure as PowerSystemClientFailure {
             throw failure
-        } catch let error as PMSetExecutionError {
+        } catch let error as PMSetHelperClientError {
             switch error {
-            case .authorizationNotRequested, .authorizationFailed:
+            case .connectionFailed:
                 throw PowerSystemClientFailure.permissionDenied
             default:
                 throw PowerSystemClientFailure.requestFailed
@@ -126,11 +130,11 @@ public actor PMSetPowerSystemClient: PowerSystemClient {
 }
 
 private extension PowerSource {
-    var parsedValue: PMSetParsedPowerSource {
+    var helperRawValue: Int {
         switch self {
-        case .charger: .ac
-        case .battery: .battery
-        case .ups: .ups
+        case .charger: GovernorPowerHelperPowerSource.charger.rawValue
+        case .battery: GovernorPowerHelperPowerSource.battery.rawValue
+        case .ups: GovernorPowerHelperPowerSource.ups.rawValue
         }
     }
 }
@@ -146,10 +150,10 @@ private extension PMSetParsedPowerSource {
 }
 
 private extension PowerControlStyle {
-    var parsedValue: PMSetParsedControlStyle {
+    var helperRawValue: Int {
         switch self {
-        case .unifiedPowermode: .unifiedPowerMode
-        case .lowPowerOnly: .legacyLowPowerMode
+        case .unifiedPowermode: GovernorPowerHelperControlStyle.unifiedPowerMode.rawValue
+        case .lowPowerOnly: GovernorPowerHelperControlStyle.legacyLowPowerMode.rawValue
         }
     }
 }

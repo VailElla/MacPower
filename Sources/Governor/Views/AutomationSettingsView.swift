@@ -33,6 +33,14 @@ struct AutomationSettingsView: View {
                     Text(model.actualModeText)
                         .foregroundStyle(.secondary)
                 }
+                if model.requiresHelperApproval {
+                    Text(AppText.helperApprovalRequired(language))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button(AppText.openLoginItemsSettings(language)) {
+                        model.openHelperApprovalSettings()
+                    }
+                }
             }
 
             Section(AppText.switchAfterInactivity(language)) {

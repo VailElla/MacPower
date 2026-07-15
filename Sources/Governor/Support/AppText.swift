@@ -39,6 +39,18 @@ enum AppText {
         choose(language, english: "Current power mode", chinese: "当前电源模式")
     }
 
+    static func helperApprovalRequired(_ language: AppLanguage) -> String {
+        choose(
+            language,
+            english: "Approve Governor's power helper once in Login Items before enabling automation. Later launches and lock/unlock do not require another password.",
+            chinese: "请先在“登录项”中一次性批准 Governor 的电源 Helper；之后重新打开应用或锁屏解锁都不再需要输入密码。"
+        )
+    }
+
+    static func openLoginItemsSettings(_ language: AppLanguage) -> String {
+        choose(language, english: "Open Login Items Settings", chinese: "打开“登录项”设置")
+    }
+
     static func switchAfterInactivity(_ language: AppLanguage) -> String {
         choose(language, english: "Switch after inactivity", chinese: "用户空闲后切换")
     }

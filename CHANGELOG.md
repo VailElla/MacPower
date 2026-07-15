@@ -2,6 +2,21 @@
 
 本项目按 [Semantic Versioning](https://semver.org/) 管理版本；测试版通过 Git 标签后缀标识。
 
+## 0.2.0 - Unreleased
+
+### SMAppService 特权 Helper
+
+- 删除已弃用的 `AuthorizationExecuteWithPrivileges` 动态桥接。
+- 新增 `SMAppService` LaunchDaemon 与 root XPC Helper：首次登记后由管理员在“登录项”批准一次；已批准的 Helper 会跨锁屏解锁和应用进程重开保持可用，不会在计时器、失败重试或后续启用时重复触发密码请求。
+- Helper 只接受电源来源、模式与控制样式的枚举请求，并自行生成固定 `/usr/bin/pmset` 许可表；不接收 shell、可执行路径、环境、任意命令或参数。旧式 `pmset` 写入构造已从 app 侧移除。
+- app 与 Helper 相互以 bundle identifier 和 Team ID 的代码签名要求验证 XPC 对端；Helper 的 launchd plist 使用受签名 bundle 内的 `BundleProgram`，不含 `Program` 或 `ProgramArguments`。
+
+### 验证与发布边界
+
+- 新增 Helper 许可表、首次登记一次性状态机、受签名 bundle 布局和嵌套签名的测试与检查。
+- `UNNOTARIZED` DMG、ZIP 和 SHA-256 资产仍可免费生成，但 Apple 要求含 LaunchDaemon 的 app 完成公证；这些 ad-hoc 测试资产不能登记 root Helper，不得作为可用的免重复认证发行版描述。
+- 自动化测试和打包验证未让测试机睡眠、重启、关机、注销或断网；这些场景仅由模拟和静态状态机验证，发布说明必须保留该限制。
+
 ## 0.1.1 - 2026-07-15
 
 ### Governor

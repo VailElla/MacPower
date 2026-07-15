@@ -120,6 +120,17 @@ final class AppModel: ObservableObject {
         state.currentPower?.highPowerAvailable ?? true
     }
 
+    /// The helper requires a one-time explicit approval in System Settings.
+    /// This flag intentionally reflects a stopped automation transaction rather
+    /// than attempting another registration or authorization interaction.
+    var requiresHelperApproval: Bool {
+        state.status == .errorStopped(.permissionDenied)
+    }
+
+    func openHelperApprovalSettings() {
+        GovernorPowerHelperInstaller.openApprovalSettings()
+    }
+
     func start() {
         guard !hasStarted else { return }
         hasStarted = true

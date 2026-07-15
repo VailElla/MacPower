@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/VERSION"
 APP_BUNDLE="$ROOT_DIR/dist/Governor.app"
 RELEASE_DIR="$ROOT_DIR/release"
+HELPER_EXECUTABLE_NAME="GovernorPowerHelper"
+HELPER_SIGNING_IDENTIFIER="com.ella.Governor.PowerHelper"
+HELPER_PLIST_NAME="com.ella.Governor.PowerHelper.plist"
 SIGNING_IDENTITY="$(printenv GOVERNOR_SIGNING_IDENTITY || true)"
 EXPECTED_TEAM_ID="$(printenv GOVERNOR_EXPECTED_TEAM_ID || true)"
 NOTARY_PROFILE="$(printenv GOVERNOR_NOTARY_PROFILE || true)"
@@ -61,6 +64,31 @@ if [[ "$ACTUAL_VERSION" != "$GOVERNOR_VERSION" ]]; then
 fi
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+HELPER_BINARY="$APP_BUNDLE/Contents/Resources/$HELPER_EXECUTABLE_NAME"
+HELPER_PLIST="$APP_BUNDLE/Contents/Library/LaunchDaemons/$HELPER_PLIST_NAME"
+if [[ ! -x "$HELPER_BINARY" || ! -f "$HELPER_PLIST" ]]; then
+  echo "Distribution bundle is missing the signed SMAppService helper layout." >&2
+  exit 1
+fi
+/usr/bin/codesign --verify --strict --verbose=2 "$HELPER_BINARY"
+HELPER_SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$HELPER_BINARY" 2>&1)"
+HELPER_TEAM_ID="$(printf '%s\n' "$HELPER_SIGNING_DETAILS" | /usr/bin/awk -F= '/^TeamIdentifier=/{print $2; exit}')"
+if [[ "$HELPER_TEAM_ID" != "$EXPECTED_TEAM_ID" ]]; then
+  echo "Helper Team ID mismatch: expected $EXPECTED_TEAM_ID, found $HELPER_TEAM_ID." >&2
+  exit 1
+fi
+if ! printf '%s\n' "$HELPER_SIGNING_DETAILS" | /usr/bin/grep -Fq "Identifier=$HELPER_SIGNING_IDENTIFIER"; then
+  echo "Helper signing identifier is not the expected fixed identifier." >&2
+  exit 1
+fi
+if ! printf '%s\n' "$HELPER_SIGNING_DETAILS" | /usr/bin/grep -Fq "Authority=Developer ID Application:"; then
+  echo "Helper must use a Developer ID Application signature." >&2
+  exit 1
+fi
+if printf '%s\n' "$HELPER_SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=adhoc"; then
+  echo "Helper must not use an ad hoc signature." >&2
+  exit 1
+fi
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" "$NOTARY_ARCHIVE"
 /usr/bin/xcrun notarytool submit "$NOTARY_ARCHIVE" --keychain-profile "$NOTARY_PROFILE" --wait
 /usr/bin/xcrun stapler staple "$APP_BUNDLE"

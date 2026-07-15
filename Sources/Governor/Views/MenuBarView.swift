@@ -29,6 +29,13 @@ struct MenuBarView: View {
 
             Toggle(AppText.automation(language), isOn: automationBinding)
 
+            if model.requiresHelperApproval {
+                Button(AppText.openLoginItemsSettings(language)) {
+                    model.openHelperApprovalSettings()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Button {
                 DispatchQueue.main.async {
                     AppLifecycle.shared.showAutomationSettings()

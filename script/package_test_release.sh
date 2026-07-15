@@ -5,6 +5,8 @@ ROOT_DIR="$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/VERSION"
 APP_BUNDLE="$ROOT_DIR/dist/Governor.app"
 RELEASE_DIR="$ROOT_DIR/release"
+HELPER_EXECUTABLE_NAME="GovernorPowerHelper"
+HELPER_PLIST_NAME="com.ella.Governor.PowerHelper.plist"
 
 if [[ ! -f "$VERSION_FILE" ]]; then
   echo "Missing version file: $VERSION_FILE" >&2
@@ -55,6 +57,37 @@ DMG_PATH="$RELEASE_DIR/$DMG_NAME"
 DMG_CHECKSUM_PATH="$DMG_PATH.sha256"
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+/usr/bin/codesign --verify --strict --verbose=2 \
+  "$APP_BUNDLE/Contents/Resources/$HELPER_EXECUTABLE_NAME"
+HELPER_PLIST="$APP_BUNDLE/Contents/Library/LaunchDaemons/$HELPER_PLIST_NAME"
+if [[ ! -f "$HELPER_PLIST" ]]; then
+  echo "SMAppService daemon plist is missing from the app bundle." >&2
+  exit 1
+fi
+if [[ "$(/usr/bin/plutil -extract BundleProgram raw "$HELPER_PLIST")" \
+  != "Contents/Resources/$HELPER_EXECUTABLE_NAME" ]]; then
+  echo "SMAppService daemon must use the fixed bundled helper executable." >&2
+  exit 1
+fi
+if [[ "$(/usr/libexec/PlistBuddy -c \
+  'Print :MachServices:com.ella.Governor.PowerHelper' "$HELPER_PLIST")" != "true" ]]; then
+  echo "SMAppService daemon must advertise only Governor's fixed Mach service." >&2
+  exit 1
+fi
+if /usr/bin/plutil -extract Program raw "$HELPER_PLIST" >/dev/null 2>&1; then
+  echo "SMAppService daemon must use BundleProgram instead of Program." >&2
+  exit 1
+fi
+if /usr/bin/plutil -extract ProgramArguments raw "$HELPER_PLIST" >/dev/null 2>&1; then
+  echo "SMAppService daemon must not contain ProgramArguments." >&2
+  exit 1
+fi
+CLIENT_REQUIREMENT="$(/usr/bin/plutil -extract \
+  EnvironmentVariables.GOVERNOR_CLIENT_CODE_REQUIREMENT raw "$HELPER_PLIST")"
+if [[ "$CLIENT_REQUIREMENT" != *'identifier "com.ella.MacPower"'* ]]; then
+  echo "SMAppService daemon is missing its app-client code requirement." >&2
+  exit 1
+fi
 SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$APP_BUNDLE" 2>&1)"
 if ! printf '%s\n' "$SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=adhoc"; then
   echo "Free test packages must remain explicitly ad hoc signed." >&2
@@ -87,6 +120,8 @@ if [[ ! -d "$EXTRACTED_APP" ]]; then
 fi
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$EXTRACTED_APP"
+/usr/bin/codesign --verify --strict --verbose=2 \
+  "$EXTRACTED_APP/Contents/Resources/$HELPER_EXECUTABLE_NAME"
 EXTRACTED_SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$EXTRACTED_APP" 2>&1)"
 if ! printf '%s\n' "$EXTRACTED_SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=adhoc"; then
   echo "Extracted test app is not ad hoc signed as expected." >&2
@@ -103,6 +138,10 @@ Governor free test build (UNNOTARIZED)
 This test asset is ad hoc signed and has not been notarized by Apple.
 It is not a Developer ID-trusted release. Drag Governor.app onto the
 Applications shortcut to install it.
+
+Apple requires an SMAppService LaunchDaemon to be in a notarized app. This
+UNNOTARIZED asset cannot register Governor's root power helper and must not be
+treated as a no-repeat-password release.
 
 Upgrading from MacPower? Quit it and move MacPower.app to Trash before
 installing Governor.app. Do not keep both apps installed or running.
@@ -148,6 +187,8 @@ if [[ "$(/usr/bin/readlink "$DMG_MOUNT_DIR/Applications")" != "/Applications" ]]
 fi
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$DMG_MOUNT_DIR/Governor.app"
+/usr/bin/codesign --verify --strict --verbose=2 \
+  "$DMG_MOUNT_DIR/Governor.app/Contents/Resources/$HELPER_EXECUTABLE_NAME"
 DMG_SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$DMG_MOUNT_DIR/Governor.app" 2>&1)"
 if ! printf '%s\n' "$DMG_SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=adhoc"; then
   echo "App inside the DMG is not ad hoc signed as expected." >&2

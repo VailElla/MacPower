@@ -149,43 +149,9 @@ enum PMSetOutputParser {
     }
 }
 
-enum PMSetArgumentError: Error, Equatable, LocalizedError {
-    case invalidMode(Int)
-    case highPowerUnavailableInLegacyMode
-
-    var errorDescription: String? {
-        switch self {
-        case let .invalidMode(value):
-            "Invalid power mode value: \(value)."
-        case .highPowerUnavailableInLegacyMode:
-            "High Power is unavailable with the legacy low-power control."
-        }
-    }
-}
-
 enum PMSetArguments {
     static let executablePath = "/usr/bin/pmset"
     static let readLive = ["-g", "live"]
     static let readCapabilities = ["-g", "cap"]
     static let readPowerSource = ["-g", "batt"]
-
-    static func write(
-        source: PMSetParsedPowerSource,
-        modeValue: Int,
-        controlStyle: PMSetParsedControlStyle
-    ) throws -> [String] {
-        guard (0 ... 2).contains(modeValue) else {
-            throw PMSetArgumentError.invalidMode(modeValue)
-        }
-
-        switch controlStyle {
-        case .unifiedPowerMode:
-            return [source.commandFlag, "powermode", String(modeValue)]
-        case .legacyLowPowerMode:
-            guard modeValue != 2 else {
-                throw PMSetArgumentError.highPowerUnavailableInLegacyMode
-            }
-            return [source.commandFlag, "lowpowermode", String(modeValue)]
-        }
-    }
 }

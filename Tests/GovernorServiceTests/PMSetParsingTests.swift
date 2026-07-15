@@ -62,46 +62,10 @@ struct PMSetParsingTests {
     }
 
     @Test
-    func testBuildsFixedCurrentSourceArguments() throws {
+    func testExposesOnlyReadOnlyAppSideArguments() {
         #expect(PMSetArguments.executablePath == "/usr/bin/pmset")
         #expect(PMSetArguments.readPowerSource == ["-g", "batt"])
         #expect(PMSetArguments.readLive == ["-g", "live"])
         #expect(PMSetArguments.readCapabilities == ["-g", "cap"])
-
-        #expect(
-            try PMSetArguments.write(
-                source: .ac,
-                modeValue: 2,
-                controlStyle: .unifiedPowerMode
-            ) == ["-c", "powermode", "2"]
-        )
-        #expect(
-            try PMSetArguments.write(
-                source: .battery,
-                modeValue: 1,
-                controlStyle: .legacyLowPowerMode
-            ) == ["-b", "lowpowermode", "1"]
-        )
-        #expect(
-            try PMSetArguments.write(
-                source: .ups,
-                modeValue: 0,
-                controlStyle: .unifiedPowerMode
-            ) == ["-u", "powermode", "0"]
-        )
-    }
-
-    @Test
-    func testNeverBuildsLegacyHighPowerRequest() {
-        do {
-            _ = try PMSetArguments.write(
-                source: .battery,
-                modeValue: 2,
-                controlStyle: .legacyLowPowerMode
-            )
-            Issue.record("Expected the legacy High Power request to be rejected.")
-        } catch {
-            #expect(error as? PMSetArgumentError == .highPowerUnavailableInLegacyMode)
-        }
     }
 }

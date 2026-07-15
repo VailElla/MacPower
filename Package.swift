@@ -9,17 +9,31 @@ let package = Package(
     ],
     products: [
         .library(name: "GovernorCore", targets: ["GovernorCore"]),
+        .library(name: "GovernorHelperSupport", targets: ["GovernorHelperSupport"]),
         .executable(name: "Governor", targets: ["Governor"]),
+        .executable(name: "GovernorPowerHelper", targets: ["GovernorPowerHelper"]),
     ],
     targets: [
         .target(
             name: "GovernorCore",
             path: "Sources/GovernorCore"
         ),
+        .target(
+            name: "GovernorHelperSupport",
+            path: "Sources/GovernorHelperSupport"
+        ),
         .executableTarget(
             name: "Governor",
-            dependencies: ["GovernorCore"],
-            path: "Sources/Governor"
+            dependencies: ["GovernorCore", "GovernorHelperSupport"],
+            path: "Sources/Governor",
+            linkerSettings: [
+                .linkedFramework("ServiceManagement"),
+            ]
+        ),
+        .executableTarget(
+            name: "GovernorPowerHelper",
+            dependencies: ["GovernorHelperSupport"],
+            path: "Sources/GovernorPowerHelper"
         ),
         .testTarget(
             name: "GovernorCoreTests",
@@ -30,6 +44,11 @@ let package = Package(
             name: "GovernorServiceTests",
             dependencies: ["Governor"],
             path: "Tests/GovernorServiceTests"
+        ),
+        .testTarget(
+            name: "GovernorHelperSupportTests",
+            dependencies: ["GovernorHelperSupport"],
+            path: "Tests/GovernorHelperSupportTests"
         ),
     ]
 )

@@ -7,6 +7,9 @@ APP_NAME="Governor"
 LEGACY_APP_NAME="MacPower"
 # Preserve the legacy identifier so existing user preferences and app-container data survive updates.
 BUNDLE_ID="com.ella.MacPower"
+HELPER_EXECUTABLE_NAME="GovernorPowerHelper"
+HELPER_SIGNING_IDENTIFIER="com.ella.Governor.PowerHelper"
+HELPER_PLIST_NAME="com.ella.Governor.PowerHelper.plist"
 MIN_SYSTEM_VERSION="13.0"
 MODE="run"
 DISTRIBUTION=0
@@ -61,6 +64,10 @@ APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 ICON_SOURCE="$ROOT_DIR/Resources/Governor.icns"
 APP_ICON="$APP_RESOURCES/Governor.icns"
+HELPER_SOURCE_PLIST="$ROOT_DIR/Resources/LaunchDaemons/$HELPER_PLIST_NAME"
+APP_HELPER_BINARY="$APP_RESOURCES/$HELPER_EXECUTABLE_NAME"
+APP_LAUNCH_DAEMONS="$APP_CONTENTS/Library/LaunchDaemons"
+APP_HELPER_PLIST="$APP_LAUNCH_DAEMONS/$HELPER_PLIST_NAME"
 SIGNING_IDENTITY="-"
 EXPECTED_TEAM_ID=""
 
@@ -87,6 +94,18 @@ if [[ ! -f "$VERSION_FILE" ]]; then
   exit 1
 fi
 
+code_signing_requirement() {
+  local identifier="$1"
+  local requirement="identifier \"$identifier\" and anchor apple generic"
+  if [[ -n "$EXPECTED_TEAM_ID" ]]; then
+    requirement+=" and certificate leaf[subject.OU] = \"$EXPECTED_TEAM_ID\""
+  fi
+  printf '%s' "$requirement"
+}
+
+CLIENT_CODE_REQUIREMENT="$(code_signing_requirement "$BUNDLE_ID")"
+HELPER_CODE_REQUIREMENT="$(code_signing_requirement "$HELPER_SIGNING_IDENTIFIER")"
+
 # shellcheck source=/dev/null
 source "$VERSION_FILE"
 
@@ -104,17 +123,35 @@ cd "$ROOT_DIR"
 swift build --configuration "$CONFIGURATION"
 BUILD_DIR="$(swift build --configuration "$CONFIGURATION" --show-bin-path)"
 BUILD_BINARY="$BUILD_DIR/$APP_NAME"
+BUILD_HELPER_BINARY="$BUILD_DIR/$HELPER_EXECUTABLE_NAME"
 
 if [[ ! -f "$ICON_SOURCE" ]]; then
   echo "Missing app icon: $ICON_SOURCE" >&2
   exit 1
 fi
+if [[ ! -f "$HELPER_SOURCE_PLIST" ]]; then
+  echo "Missing SMAppService daemon plist: $HELPER_SOURCE_PLIST" >&2
+  exit 1
+fi
+if [[ ! -x "$BUILD_HELPER_BINARY" ]]; then
+  echo "Missing helper executable: $BUILD_HELPER_BINARY" >&2
+  exit 1
+fi
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_MACOS" "$APP_RESOURCES"
+mkdir -p "$APP_MACOS" "$APP_RESOURCES" "$APP_LAUNCH_DAEMONS"
 cp "$BUILD_BINARY" "$APP_BINARY"
 cp "$ICON_SOURCE" "$APP_ICON"
+cp "$BUILD_HELPER_BINARY" "$APP_HELPER_BINARY"
+cp "$HELPER_SOURCE_PLIST" "$APP_HELPER_PLIST"
 chmod +x "$APP_BINARY"
+chmod +x "$APP_HELPER_BINARY"
+
+/usr/bin/plutil -replace \
+  "EnvironmentVariables.GOVERNOR_CLIENT_CODE_REQUIREMENT" \
+  -string "$CLIENT_CODE_REQUIREMENT" \
+  "$APP_HELPER_PLIST"
+/usr/bin/plutil -lint "$APP_HELPER_PLIST" >/dev/null
 
 cat >"$INFO_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -147,6 +184,10 @@ cat >"$INFO_PLIST" <<PLIST
   <string>$GOVERNOR_RELEASE_NAME</string>
   <key>GovernorReleaseTag</key>
   <string>$GOVERNOR_RELEASE_TAG</string>
+  <key>GovernorHelperCodeRequirement</key>
+  <string>$HELPER_CODE_REQUIREMENT</string>
+  <key>GovernorHelperSigningIdentifier</key>
+  <string>$HELPER_SIGNING_IDENTIFIER</string>
 </dict>
 </plist>
 PLIST
@@ -154,12 +195,26 @@ PLIST
 /usr/bin/plutil -lint "$INFO_PLIST" >/dev/null
 
 if [[ "$DISTRIBUTION" -eq 1 ]]; then
+  /usr/bin/codesign \
+    --force \
+    --options runtime \
+    --timestamp \
+    --identifier "$HELPER_SIGNING_IDENTIFIER" \
+    --sign "$SIGNING_IDENTITY" \
+    "$APP_HELPER_BINARY"
   /usr/bin/codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$APP_BUNDLE"
 else
+  /usr/bin/codesign \
+    --force \
+    --timestamp=none \
+    --identifier "$HELPER_SIGNING_IDENTIFIER" \
+    --sign - \
+    "$APP_HELPER_BINARY"
   /usr/bin/codesign --force --sign - --timestamp=none "$APP_BUNDLE"
 fi
 
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+/usr/bin/codesign --verify --strict --verbose=2 "$APP_HELPER_BINARY"
 
 if [[ "$DISTRIBUTION" -eq 1 ]]; then
   SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$APP_BUNDLE" 2>&1)"

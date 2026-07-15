@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ella.Governor.PowerHelper</string>
+    <key>BundleProgram</key>
+    <string>Contents/Resources/GovernorPowerHelper</string>
+    <key>MachServices</key>
+    <dict>
+        <key>com.ella.Governor.PowerHelper</key>
+        <true/>
+    </dict>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>GOVERNOR_CLIENT_CODE_REQUIREMENT</key>
+        <string>__GOVERNOR_CLIENT_CODE_REQUIREMENT__</string>
+    </dict>
+</dict>
+</plist>

@@ -8,10 +8,10 @@
   根据用户空闲时间与最近 15 秒平均 CPU 使用率，自动切换 macOS 电源模式的菜单栏工具。
 </p>
 
-<p align="center"><strong>v0.1.1 · Language preference and rebrand · build 2</strong></p>
+<p align="center"><strong>v0.2.0 · SMAppService power helper · build 3</strong></p>
 
 > [!IMPORTANT]
-> 由 `script/package_test_release.sh` 生成的 v0.1.1 发布资产是明确标记为 `UNNOTARIZED` 的测试包。它们使用 ad-hoc 签名、未经 Apple 公证，不是 Developer ID 签名或受信任发行包，macOS 首次直接打开时会被 Gatekeeper 阻止。不得将这些测试资产描述为受信任的 GitHub Release。
+> 由 `script/package_test_release.sh` 生成的 v0.2.0 资产明确标记为 `UNNOTARIZED`，仅用于免费打包与安装路径测试。它们使用 ad-hoc 签名、未经 Apple 公证，不是 Developer ID 签名或受信任发行包，macOS 首次直接打开时会被 Gatekeeper 阻止。Apple 要求含 `SMAppService` LaunchDaemon 的 app 必须经过公证；因此这些测试资产**不能**注册 root Helper，也不得被描述为可用的“免重复认证”发行版。
 
 ## 功能
 
@@ -25,6 +25,7 @@
 - 可在设置窗口一键恢复规则与选项的默认值，且不改变当前自动化开关状态。
 - 检测到用户在系统设置或其他软件中手动更改模式时，可按设置选择是否暂停自动控制。
 - 关闭自动化或正常退出时，在安全条件满足后恢复接管前模式。
+- 正式公证版首次启用时通过 `SMAppService` 登记内建 root Helper；管理员在“登录项”中批准一次后，锁屏解锁、退出重开应用和后续启用均不会再次索要管理员密码。
 
 ## 首版规则
 
@@ -43,7 +44,7 @@
 - macOS 13 或更高版本
 - 支持系统 `pmset` 电源模式接口的 Mac（High Power 是否可用由系统实时检测）
 - Swift 6.2 或更高版本（从源码构建时）
-- 开启自动化时，需要管理员权限读取和更改系统电源模式
+- 要启用持久 root Helper，必须使用 Developer ID 签名并经 Apple 公证的 app；管理员只需在首次登记时于“登录项”批准一次
 
 ## 从源码构建
 
@@ -83,7 +84,7 @@ Governor 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行统
 ./script/run_tests.sh
 ```
 
-测试覆盖决策边界、15 秒 CPU 窗口、手动修改后的可选暂停、失败停止、模式与亮度恢复、并发切换保护，以及语言初始值和持久化行为。系统依赖在测试中由 test doubles 替代，不会更改当前 Mac 的真实电源模式或屏幕亮度；发行脚本测试会验证缺少签名或公证配置时不会开始构建或生成归档。
+测试覆盖决策边界、15 秒 CPU 窗口、手动修改后的可选暂停、失败停止、模式与亮度恢复、并发切换保护、语言持久化、`SMAppService` 首次登记状态机，以及 root Helper 的全部 `pmset` 许可表。系统依赖在测试中由 test doubles 替代；测试没有让本机睡眠、重启、关机、注销或断网，也没有注册或启动真实 root Helper。发行脚本会验证 daemon 的受签名 bundle 布局、DMG/ZIP 解压与挂载、签名和 SHA-256。
 
 ## 免费测试包（UNNOTARIZED）
 
@@ -95,10 +96,10 @@ Governor 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行统
 
 脚本以 Release 配置构建并应用 ad-hoc 签名，确认 Gatekeeper 不会误把它当作受信任发行版；DMG 内含 `Governor.app`、指向 `/Applications` 的拖动安装快捷方式和安全提示。当前 Apple Silicon 机器上的示例输出为：
 
-- `release/Governor-v0.1.1-UNNOTARIZED-macOS-arm64.dmg`
-- `release/Governor-v0.1.1-UNNOTARIZED-macOS-arm64.dmg.sha256`
-- `release/Governor-v0.1.1-UNNOTARIZED-macOS.zip`
-- `release/Governor-v0.1.1-UNNOTARIZED-macOS.zip.sha256`
+- `release/Governor-v0.2.0-UNNOTARIZED-macOS-arm64.dmg`
+- `release/Governor-v0.2.0-UNNOTARIZED-macOS-arm64.dmg.sha256`
+- `release/Governor-v0.2.0-UNNOTARIZED-macOS.zip`
+- `release/Governor-v0.2.0-UNNOTARIZED-macOS.zip.sha256`
 
 下载方应先核对 SHA-256，再打开 DMG，把 `Governor.app` 拖到 `Applications`。首次打开会被 macOS 阻止；只有确认下载来源和校验值可信时，才可在“系统设置 → 隐私与安全性”中选择“仍要打开”。这项手动放行只是在当前 Mac 上增加例外，不能替代 Developer ID 签名或 Apple 公证。
 
@@ -106,15 +107,15 @@ Governor 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行统
 
 ```bash
 cd release
-shasum -a 256 -c Governor-v0.1.1-UNNOTARIZED-macOS-arm64.dmg.sha256
-shasum -a 256 -c Governor-v0.1.1-UNNOTARIZED-macOS.zip.sha256
+shasum -a 256 -c Governor-v0.2.0-UNNOTARIZED-macOS-arm64.dmg.sha256
+shasum -a 256 -c Governor-v0.2.0-UNNOTARIZED-macOS.zip.sha256
 ```
 
-SHA-256 只用于发现传输损坏或文件变化，不能证明发布者身份。`UNNOTARIZED` 测试包不得被描述为“已签名”“已公证”“Developer ID 可信”或“受 Gatekeeper 信任”的正式发行版。
+SHA-256 只用于发现传输损坏或文件变化，不能证明发布者身份。`UNNOTARIZED` 测试包不得被描述为“已签名”“已公证”“Developer ID 可信”“受 Gatekeeper 信任”或“可登记特权 Helper”的正式发行版。
 
-## 可选的维护者签名与公证流程
+## 正式 Helper 发行的维护者签名与公证流程
 
-`script/package_release.sh` 仅供已配置 Developer ID 身份和 Apple 公证 profile 的维护者使用；它不是对 v0.1.1 GitHub Release 资产的信任声明。只有脚本实际完整通过，并在对应发布说明中如实记录签名与公证状态时，才可陈述该独立产物的验证事实。
+`script/package_release.sh` 是 v0.2.0 持久 Helper 的必需流程，而不是可选的美化步骤。只有 Developer ID 签名、Apple 公证、装订和 Gatekeeper 验证全部通过后，`SMAppService` 才能登记 root daemon；应用仍可免费分发，但维护者必须具备这些 Apple 凭据。它不是对 `UNNOTARIZED` GitHub 资产的信任声明。
 
 ```bash
 export GOVERNOR_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)'
@@ -125,23 +126,23 @@ export GOVERNOR_NOTARY_PROFILE='governor-notary'
 
 该可选流程会构建、核对 Team ID、提交公证、装订票据并运行 Gatekeeper 评估，随后生成：
 
-- `release/Governor-v0.1.1-macOS.zip`
-- `release/Governor-v0.1.1-macOS.zip.sha256`
+- `release/Governor-v0.2.0-macOS.zip`
+- `release/Governor-v0.2.0-macOS.zip.sha256`
 
 SHA-256 文件只用于传输完整性检查，不能证明发布者身份。详细的维护者流程见 [RELEASING.md](RELEASING.md)。
 
 ## 权限与安全边界
 
-Governor 只调用固定路径 `/usr/bin/pmset`，参数由内部枚举生成，不经过 shell。只有用户明确开启自动化后，软件才会请求一次会话级管理员授权。
+Governor 的 app 侧只做只读 `pmset -g` 查询。写入只能经过 `SMAppService` 注册的 root Helper；Helper 仅暴露一个 XPC 方法，输入为电源来源、模式和控制样式的三个整数枚举。它自行生成固定路径 `/usr/bin/pmset` 的三参数许可表、清空子进程环境、没有 shell、路径、环境、命令或任意参数入口；请求和回复均使用 `NSSecureCoding` 白名单。
 
 启用亮度恢复时，该功能仅作用于系统内建屏幕，并在本机进程内动态解析 macOS 的 `DisplayServices` 亮度接口；它不需要管理员权限。该接口不可用或显示器不支持时会安全跳过，不影响电源模式切换。
 
-当前测试版通过动态解析 Apple 已弃用的 `AuthorizationExecuteWithPrivileges` API 完成本地提权。它适合本地验证，但不是正式分发的最终架构；稳定分发前仍应改为通过 `SMAppService` 注册的特权 helper 或 daemon。
+app 与 Helper 在 XPC 双向使用代码签名要求：daemon 只接受指定 app identifier 与 Team ID 的连接，app 只连接指定 Helper identifier 与 Team ID 的 Mach service。首次明确启用时若 daemon 未登记，app 只调用一次 `SMAppService.register()`；需要批准时停止自动化并提供“打开登录项设置”，绝不会在计时器、失败重试、锁屏解锁或应用重开时再次请求管理员密码。
 
 ## 已知限制
 
 - 仅支持 macOS 13 及以上版本。
-- 从源码构建的 `dist/Governor.app`、免费测试 DMG 和 ZIP 都是 ad-hoc 包，未经 Apple 公证，需要用户手动允许首次打开。
+- 从源码构建的 `dist/Governor.app`、免费测试 DMG 和 ZIP 都是 ad-hoc 包，未经 Apple 公证，需要用户手动允许首次打开；它们不能登记 `SMAppService` root Helper。
 - High Power 只在系统实际报告支持时可选。
 - 亮度恢复目前只覆盖内建屏幕；外接显示器的 DDC/CI 亮度不在首版范围内。
 - 首版没有电池百分比规则、按应用规则、定时计划、通知、学习功能或高级诊断界面。
@@ -152,6 +153,8 @@ Governor 只调用固定路径 `/usr/bin/pmset`，参数由内部枚举生成，
 ```text
 Sources/Governor/       菜单栏应用、系统服务与界面
 Sources/GovernorCore/   可测试的自动化决策与协调逻辑
+Sources/GovernorHelperSupport/  XPC 合同与 root pmset 许可表
+Sources/GovernorPowerHelper/    仅执行固定许可表的 root XPC daemon
 Tests/                  核心与服务测试
 Resources/              应用图标
 script/                 构建、测试与发布打包脚本
@@ -161,9 +164,9 @@ RELEASING.md            测试包与可选公证流程
 
 ## 版本
 
-- 当前版本：`0.1.1`（build `2`）
-- 发布标签：`v0.1.1`
-- 版本名称：**Language preference and rebrand**
+- 当前版本：`0.2.0`（build `3`）
+- 发布标签：`v0.2.0`
+- 版本名称：**SMAppService power helper**
 
 ## 开源许可
 
