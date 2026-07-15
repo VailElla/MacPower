@@ -3,33 +3,33 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacPower",
+    name: "Governor",
     platforms: [
         .macOS(.v13),
     ],
     products: [
-        .library(name: "MacPowerCore", targets: ["MacPowerCore"]),
-        .executable(name: "MacPower", targets: ["MacPower"]),
+        .library(name: "GovernorCore", targets: ["GovernorCore"]),
+        .executable(name: "Governor", targets: ["Governor"]),
     ],
     targets: [
         .target(
-            name: "MacPowerCore",
-            path: "Sources/MacPowerCore"
+            name: "GovernorCore",
+            path: "Sources/GovernorCore"
         ),
         .executableTarget(
-            name: "MacPower",
-            dependencies: ["MacPowerCore"],
-            path: "Sources/MacPower"
+            name: "Governor",
+            dependencies: ["GovernorCore"],
+            path: "Sources/Governor"
         ),
         .testTarget(
-            name: "MacPowerCoreTests",
-            dependencies: ["MacPowerCore"],
-            path: "Tests/MacPowerCoreTests"
+            name: "GovernorCoreTests",
+            dependencies: ["GovernorCore"],
+            path: "Tests/GovernorCoreTests"
         ),
         .testTarget(
-            name: "MacPowerServiceTests",
-            dependencies: ["MacPower"],
-            path: "Tests/MacPowerServiceTests"
+            name: "GovernorServiceTests",
+            dependencies: ["Governor"],
+            path: "Tests/GovernorServiceTests"
         ),
     ]
 )

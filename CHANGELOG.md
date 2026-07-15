@@ -2,6 +2,19 @@
 
 本项目按 [Semantic Versioning](https://semver.org/) 管理版本；测试版通过 Git 标签后缀标识。
 
+## 0.1.1 - 2026-07-15
+
+### Governor
+
+- 统一公开软件名、应用包、可执行文件、图标和发布资产为 Governor；发布标签更新为 `v0.1.1`，build 为 `2`。
+- 设置中新增 `English` / `中文` 语言选项。首次启动默认英文；如果系统首选语言为中文，则首次默认中文。用户手动选择后会持久保存，不会被后续系统语言变化覆盖。
+- 为已有用户保留原 bundle ID，以延续既有偏好和应用容器；这不改变 Governor 的可见名称或发布资产名称。
+- 升级说明要求先退出并移除旧的 `MacPower.app`，再安装 `Governor.app`，避免两个应用并存或同时运行。
+
+### 发布说明
+
+- `script/package_test_release.sh` 生成的 v0.1.1 测试 DMG 和 ZIP 明确标记为 `UNNOTARIZED`，使用 ad-hoc 签名且未经 Apple 公证；不得将其描述为 Developer ID 可信或受 Gatekeeper 信任的发行包。
+
 ## 0.1.0-beta.1 - 2026-07-15
 
 ### 初代测试版

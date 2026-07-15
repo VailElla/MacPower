@@ -44,7 +44,7 @@ TMP_ROOT="$(printenv TMPDIR || true)"
 if [[ -z "$TMP_ROOT" ]]; then
   TMP_ROOT="/tmp"
 fi
-VERIFY_DIR="$(/usr/bin/mktemp -d "$TMP_ROOT/macpower-verify.XXXXXX")"
+VERIFY_DIR="$(/usr/bin/mktemp -d "$TMP_ROOT/governor-verify.XXXXXX")"
 
 cleanup() {
   /bin/rm -rf "$VERIFY_DIR"
@@ -52,10 +52,10 @@ cleanup() {
 trap cleanup EXIT
 
 /usr/bin/ditto -x -k "$ARCHIVE_PATH" "$VERIFY_DIR"
-APP_BUNDLE="$VERIFY_DIR/MacPower.app"
+APP_BUNDLE="$VERIFY_DIR/Governor.app"
 
 if [[ ! -d "$APP_BUNDLE" ]]; then
-  echo "Archive must contain MacPower.app at its top level." >&2
+  echo "Archive must contain Governor.app at its top level." >&2
   exit 1
 fi
 
@@ -79,4 +79,4 @@ fi
 /usr/bin/xcrun stapler validate "$APP_BUNDLE"
 /usr/sbin/spctl --assess --type execute --verbose=4 "$APP_BUNDLE"
 
-echo "Verified notarized MacPower release: $ARCHIVE_PATH"
+echo "Verified notarized Governor release: $ARCHIVE_PATH"

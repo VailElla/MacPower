@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$BASH_SOURCE")/.." && pwd)"
 VERSION_FILE="$ROOT_DIR/VERSION"
-APP_BUNDLE="$ROOT_DIR/dist/MacPower.app"
+APP_BUNDLE="$ROOT_DIR/dist/Governor.app"
 RELEASE_DIR="$ROOT_DIR/release"
 
 if [[ ! -f "$VERSION_FILE" ]]; then
@@ -14,19 +14,19 @@ fi
 # shellcheck source=/dev/null
 source "$VERSION_FILE"
 
-if [[ -z "$MACPOWER_VERSION" || -z "$MACPOWER_RELEASE_TAG" ]]; then
-  echo "VERSION must define MACPOWER_VERSION and MACPOWER_RELEASE_TAG." >&2
+if [[ -z "$GOVERNOR_VERSION" || -z "$GOVERNOR_RELEASE_TAG" ]]; then
+  echo "VERSION must define GOVERNOR_VERSION and GOVERNOR_RELEASE_TAG." >&2
   exit 1
 fi
 
-ARCHIVE_NAME="MacPower-$MACPOWER_RELEASE_TAG-UNNOTARIZED-macOS.zip"
+ARCHIVE_NAME="Governor-$GOVERNOR_RELEASE_TAG-UNNOTARIZED-macOS.zip"
 ARCHIVE_PATH="$RELEASE_DIR/$ARCHIVE_NAME"
 CHECKSUM_PATH="$ARCHIVE_PATH.sha256"
 TMP_ROOT="$(printenv TMPDIR || true)"
 if [[ -z "$TMP_ROOT" ]]; then
   TMP_ROOT="/tmp"
 fi
-VERIFY_DIR="$(/usr/bin/mktemp -d "$TMP_ROOT/macpower-test-release.XXXXXX")"
+VERIFY_DIR="$(/usr/bin/mktemp -d "$TMP_ROOT/governor-test-release.XXXXXX")"
 DMG_STAGING_DIR="$VERIFY_DIR/dmg-staging"
 DMG_MOUNT_DIR="$VERIFY_DIR/dmg-mount"
 DMG_MOUNTED=0
@@ -39,18 +39,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
-MACPOWER_BUILD_CONFIGURATION=release \
+GOVERNOR_BUILD_CONFIGURATION=release \
   "$ROOT_DIR/script/build_and_run.sh" --bundle-only
 
 ACTUAL_VERSION="$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$APP_BUNDLE/Contents/Info.plist")"
-if [[ "$ACTUAL_VERSION" != "$MACPOWER_VERSION" ]]; then
-  echo "Bundle version mismatch: expected $MACPOWER_VERSION, found $ACTUAL_VERSION" >&2
+if [[ "$ACTUAL_VERSION" != "$GOVERNOR_VERSION" ]]; then
+  echo "Bundle version mismatch: expected $GOVERNOR_VERSION, found $ACTUAL_VERSION" >&2
   exit 1
 fi
 
-BINARY_ARCHITECTURES="$(/usr/bin/lipo -archs "$APP_BUNDLE/Contents/MacOS/MacPower")"
+BINARY_ARCHITECTURES="$(/usr/bin/lipo -archs "$APP_BUNDLE/Contents/MacOS/Governor")"
 ARCHITECTURE_LABEL="$(printf '%s' "$BINARY_ARCHITECTURES" | /usr/bin/tr ' ' '-')"
-DMG_NAME="MacPower-$MACPOWER_RELEASE_TAG-UNNOTARIZED-macOS-$ARCHITECTURE_LABEL.dmg"
+DMG_NAME="Governor-$GOVERNOR_RELEASE_TAG-UNNOTARIZED-macOS-$ARCHITECTURE_LABEL.dmg"
 DMG_PATH="$RELEASE_DIR/$DMG_NAME"
 DMG_CHECKSUM_PATH="$DMG_PATH.sha256"
 
@@ -80,9 +80,9 @@ mkdir -p "$RELEASE_DIR"
 )
 
 /usr/bin/ditto -x -k "$ARCHIVE_PATH" "$VERIFY_DIR"
-EXTRACTED_APP="$VERIFY_DIR/MacPower.app"
+EXTRACTED_APP="$VERIFY_DIR/Governor.app"
 if [[ ! -d "$EXTRACTED_APP" ]]; then
-  echo "Archive must contain MacPower.app at its top level." >&2
+  echo "Archive must contain Governor.app at its top level." >&2
   exit 1
 fi
 
@@ -94,14 +94,18 @@ if ! printf '%s\n' "$EXTRACTED_SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=a
 fi
 
 mkdir -p "$DMG_STAGING_DIR" "$DMG_MOUNT_DIR"
-/usr/bin/ditto "$APP_BUNDLE" "$DMG_STAGING_DIR/MacPower.app"
+/usr/bin/ditto "$APP_BUNDLE" "$DMG_STAGING_DIR/Governor.app"
 /bin/ln -s /Applications "$DMG_STAGING_DIR/Applications"
 
 cat >"$DMG_STAGING_DIR/READ ME - UNNOTARIZED.txt" <<'NOTICE'
-MacPower free test build
+Governor free test build (UNNOTARIZED)
 
-This app is ad hoc signed and has not been notarized by Apple.
-Drag MacPower.app onto the Applications shortcut to install it.
+This test asset is ad hoc signed and has not been notarized by Apple.
+It is not a Developer ID-trusted release. Drag Governor.app onto the
+Applications shortcut to install it.
+
+Upgrading from MacPower? Quit it and move MacPower.app to Trash before
+installing Governor.app. Do not keep both apps installed or running.
 
 On first launch, macOS will block the app. Only if you trust the source and
 have verified the published SHA-256 checksum, open System Settings > Privacy
@@ -109,7 +113,7 @@ have verified the published SHA-256 checksum, open System Settings > Privacy
 NOTICE
 
 /usr/bin/hdiutil create \
-  -volname "MacPower $MACPOWER_VERSION UNNOTARIZED" \
+  -volname "Governor $GOVERNOR_VERSION UNNOTARIZED" \
   -srcfolder "$DMG_STAGING_DIR" \
   -format UDZO \
   -ov \
@@ -130,8 +134,8 @@ NOTICE
   "$DMG_PATH" >/dev/null
 DMG_MOUNTED=1
 
-if [[ ! -d "$DMG_MOUNT_DIR/MacPower.app" ]]; then
-  echo "DMG must contain MacPower.app at its top level." >&2
+if [[ ! -d "$DMG_MOUNT_DIR/Governor.app" ]]; then
+  echo "DMG must contain Governor.app at its top level." >&2
   exit 1
 fi
 if [[ ! -L "$DMG_MOUNT_DIR/Applications" ]]; then
@@ -143,8 +147,8 @@ if [[ "$(/usr/bin/readlink "$DMG_MOUNT_DIR/Applications")" != "/Applications" ]]
   exit 1
 fi
 
-/usr/bin/codesign --verify --deep --strict --verbose=2 "$DMG_MOUNT_DIR/MacPower.app"
-DMG_SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$DMG_MOUNT_DIR/MacPower.app" 2>&1)"
+/usr/bin/codesign --verify --deep --strict --verbose=2 "$DMG_MOUNT_DIR/Governor.app"
+DMG_SIGNING_DETAILS="$(/usr/bin/codesign -dvv "$DMG_MOUNT_DIR/Governor.app" 2>&1)"
 if ! printf '%s\n' "$DMG_SIGNING_DETAILS" | /usr/bin/grep -Fq "Signature=adhoc"; then
   echo "App inside the DMG is not ad hoc signed as expected." >&2
   exit 1
@@ -153,7 +157,7 @@ fi
 /usr/bin/hdiutil detach "$DMG_MOUNT_DIR" -quiet
 DMG_MOUNTED=0
 
-echo "Created free test archive: $ARCHIVE_PATH"
+echo "Created UNNOTARIZED test archive: $ARCHIVE_PATH"
 echo "SHA-256 checksum: $CHECKSUM_PATH"
 echo "Created drag-to-install DMG: $DMG_PATH"
 echo "DMG SHA-256 checksum: $DMG_CHECKSUM_PATH"

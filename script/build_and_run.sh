@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="MacPower"
+# Governor is the public product name and bundle executable.
+APP_NAME="Governor"
+# Stop the retired process on launch so a local upgrade cannot run both apps.
+LEGACY_APP_NAME="MacPower"
+# Preserve the legacy identifier so existing user preferences and app-container data survive updates.
 BUNDLE_ID="com.ella.MacPower"
 MIN_SYSTEM_VERSION="13.0"
 MODE="run"
@@ -37,12 +41,12 @@ if [[ "$DISTRIBUTION" -eq 1 && "$MODE" != "--bundle-only" && "$MODE" != "bundle-
   exit 2
 fi
 
-CONFIGURATION="$(printenv MACPOWER_BUILD_CONFIGURATION || true)"
+CONFIGURATION="$(printenv GOVERNOR_BUILD_CONFIGURATION || true)"
 if [[ -z "$CONFIGURATION" ]]; then
   CONFIGURATION="debug"
 fi
 if [[ "$CONFIGURATION" != "debug" && "$CONFIGURATION" != "release" ]]; then
-  echo "MACPOWER_BUILD_CONFIGURATION must be debug or release" >&2
+  echo "GOVERNOR_BUILD_CONFIGURATION must be debug or release" >&2
   exit 2
 fi
 
@@ -55,25 +59,25 @@ APP_MACOS="$APP_CONTENTS/MacOS"
 APP_RESOURCES="$APP_CONTENTS/Resources"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
-ICON_SOURCE="$ROOT_DIR/Resources/MacPower.icns"
-APP_ICON="$APP_RESOURCES/MacPower.icns"
+ICON_SOURCE="$ROOT_DIR/Resources/Governor.icns"
+APP_ICON="$APP_RESOURCES/Governor.icns"
 SIGNING_IDENTITY="-"
 EXPECTED_TEAM_ID=""
 
 if [[ "$DISTRIBUTION" -eq 1 ]]; then
-  SIGNING_IDENTITY="$(printenv MACPOWER_SIGNING_IDENTITY || true)"
-  EXPECTED_TEAM_ID="$(printenv MACPOWER_EXPECTED_TEAM_ID || true)"
+  SIGNING_IDENTITY="$(printenv GOVERNOR_SIGNING_IDENTITY || true)"
+  EXPECTED_TEAM_ID="$(printenv GOVERNOR_EXPECTED_TEAM_ID || true)"
 
   if [[ -z "$SIGNING_IDENTITY" ]]; then
-    echo "Distribution builds require MACPOWER_SIGNING_IDENTITY." >&2
+    echo "Distribution builds require GOVERNOR_SIGNING_IDENTITY." >&2
     exit 1
   fi
   if [[ -z "$EXPECTED_TEAM_ID" ]]; then
-    echo "Distribution builds require MACPOWER_EXPECTED_TEAM_ID." >&2
+    echo "Distribution builds require GOVERNOR_EXPECTED_TEAM_ID." >&2
     exit 1
   fi
   if [[ ! "$EXPECTED_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; then
-    echo "MACPOWER_EXPECTED_TEAM_ID must be a 10-character Apple Team ID." >&2
+    echo "GOVERNOR_EXPECTED_TEAM_ID must be a 10-character Apple Team ID." >&2
     exit 1
   fi
 fi
@@ -86,13 +90,14 @@ fi
 # shellcheck source=/dev/null
 source "$VERSION_FILE"
 
-if [[ -z "$MACPOWER_VERSION" || -z "$MACPOWER_BUILD_NUMBER" || -z "$MACPOWER_RELEASE_NAME" || -z "$MACPOWER_RELEASE_TAG" ]]; then
-  echo "VERSION must define MACPOWER_VERSION, MACPOWER_BUILD_NUMBER, MACPOWER_RELEASE_NAME, and MACPOWER_RELEASE_TAG." >&2
+if [[ -z "$GOVERNOR_VERSION" || -z "$GOVERNOR_BUILD_NUMBER" || -z "$GOVERNOR_RELEASE_NAME" || -z "$GOVERNOR_RELEASE_TAG" ]]; then
+  echo "VERSION must define GOVERNOR_VERSION, GOVERNOR_BUILD_NUMBER, GOVERNOR_RELEASE_NAME, and GOVERNOR_RELEASE_TAG." >&2
   exit 1
 fi
 
 if [[ "$MODE" != "--bundle-only" && "$MODE" != "bundle-only" ]]; then
   pkill -x "$APP_NAME" >/dev/null 2>&1 || true
+  pkill -x "$LEGACY_APP_NAME" >/dev/null 2>&1 || true
 fi
 
 cd "$ROOT_DIR"
@@ -121,15 +126,15 @@ cat >"$INFO_PLIST" <<PLIST
   <key>CFBundleIdentifier</key>
   <string>$BUNDLE_ID</string>
   <key>CFBundleIconFile</key>
-  <string>MacPower.icns</string>
+  <string>Governor.icns</string>
   <key>CFBundleName</key>
   <string>$APP_NAME</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>$MACPOWER_VERSION</string>
+  <string>$GOVERNOR_VERSION</string>
   <key>CFBundleVersion</key>
-  <string>$MACPOWER_BUILD_NUMBER</string>
+  <string>$GOVERNOR_BUILD_NUMBER</string>
   <key>LSMinimumSystemVersion</key>
   <string>$MIN_SYSTEM_VERSION</string>
   <key>LSUIElement</key>
@@ -138,10 +143,10 @@ cat >"$INFO_PLIST" <<PLIST
   <true/>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
-  <key>MacPowerReleaseName</key>
-  <string>$MACPOWER_RELEASE_NAME</string>
-  <key>MacPowerReleaseTag</key>
-  <string>$MACPOWER_RELEASE_TAG</string>
+  <key>GovernorReleaseName</key>
+  <string>$GOVERNOR_RELEASE_NAME</string>
+  <key>GovernorReleaseTag</key>
+  <string>$GOVERNOR_RELEASE_TAG</string>
 </dict>
 </plist>
 PLIST
@@ -218,9 +223,9 @@ case "$MODE" in
     ;;
   --bundle-only|bundle-only)
     if [[ "$DISTRIBUTION" -eq 1 ]]; then
-      echo "Built Developer ID-signed distribution candidate $APP_BUNDLE ($MACPOWER_VERSION · $MACPOWER_RELEASE_NAME)"
+      echo "Built Developer ID-signed distribution candidate $APP_BUNDLE ($GOVERNOR_VERSION · $GOVERNOR_RELEASE_NAME)"
     else
-      echo "Built ad hoc local-development bundle $APP_BUNDLE ($MACPOWER_VERSION · $MACPOWER_RELEASE_NAME)"
+      echo "Built ad hoc local-development bundle $APP_BUNDLE ($GOVERNOR_VERSION · $GOVERNOR_RELEASE_NAME)"
     fi
     ;;
 esac
