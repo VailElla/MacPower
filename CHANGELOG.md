@@ -2,7 +2,7 @@
 
 本项目按 [Semantic Versioning](https://semver.org/) 管理版本；测试版通过 Git 标签后缀标识。
 
-## 0.2.0 - Unreleased
+## 0.2.1 - 2026-07-16
 
 ### 电源授权路径
 

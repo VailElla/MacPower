@@ -1,53 +1,38 @@
-# Governor v0.2.0 build 5 — UNNOTARIZED manual-install pre-release
+# Governor v0.2.0 — Pre-release
 
-> These are **UNNOTARIZED manual-install assets**. They are ad hoc signed and
-> require an explicit, per-Mac Gatekeeper exception after checksum verification.
-> They are not Developer ID-trusted or Apple-notarized releases.
+> This GitHub pre-release contains **UNNOTARIZED packaging-test assets only**.
+> They cannot register the privileged Helper and are not a functioning
+> no-repeat-password release. A Developer ID-signed, notarized ZIP can be
+> added only after its signing and notarization checks succeed.
 
-> **Build 5:** Automation is available through a session-only administrator
-> authorization bridge. The first time automation is enabled after Governor is
-> opened, macOS requests administrator authorization. It lasts only while
-> Governor is running; after quitting and reopening, enable automation again to
-> authorize a new session. Governor will not appear in Login Items.
+## SMAppService power helper
 
-## Install the UNNOTARIZED app
+- Replaces the deprecated in-process privileged executor with a bundled
+  `SMAppService` LaunchDaemon.
+- The root Helper exposes one code-signed XPC method only. It accepts three
+  enumerated values and constructs a fixed `/usr/bin/pmset` allow-list itself;
+  it accepts no shell, executable path, environment, arbitrary command, or
+  arbitrary arguments.
+- In a Developer ID-signed and Apple-notarized build installed in
+  `/Applications`, the user approves the daemon once in System Settings >
+  General > Login Items. Later lock/unlock, app relaunch, and automation enable
+  actions do not request an administrator password again.
 
-1. Download the DMG and its matching `.sha256` file, then verify it before
-   opening anything:
+## Asset status
 
-   ```bash
-   shasum -a 256 -c Governor-v0.2.0-UNNOTARIZED-macOS-arm64.dmg.sha256
-   ```
-
-2. Open the DMG and drag `Governor.app` to `Applications`.
-3. Try to open the app once. Then open **System Settings → Privacy & Security**,
-   scroll to **Security**, choose **Open Anyway**, and confirm the next dialog.
-   This creates an exception for this app on this Mac; it is not a Developer ID
-   signature or notarization.
-4. In Governor, enable Automation and approve the administrator prompt. The
-   password is not stored; closing Governor ends that authorization session.
-
-Do not disable Gatekeeper globally or strip a downloaded app's quarantine
-attribute with Terminal commands. Only use the per-app exception after verifying
-the release URL and SHA-256 checksum.
-
-## Authorization modes
-
-- **UNNOTARIZED build 5:** cannot register the persistent `SMAppService`
-  helper. It uses a deprecated, session-scoped authorization bridge that can
-  execute only Governor's fixed `/usr/bin/pmset` allow-list. This is a manual
-  compatibility path, not a trusted long-term distribution mechanism.
-- **Developer ID-signed and notarized build:** registers the code-signed XPC
-  Helper through `SMAppService`. The user approves it once in System Settings >
-  General > Login Items; later app relaunches and lock/unlock do not request an
-  administrator password again.
+`Governor-v0.2.0-UNNOTARIZED-*` assets are free packaging-test assets. They are
+ad hoc signed, not notarized, and not Developer ID-trusted. Apple requires a
+notarized app for an `SMAppService` LaunchDaemon, so these assets cannot
+register the privileged Helper and must not be represented as a functioning
+no-repeat-password release. SHA-256 files detect download corruption or change;
+they do not prove publisher identity.
 
 ## Test scope
 
 - Passed unit, state-machine, allow-list, build, package, ZIP extraction, DMG
   mount, signature, and SHA-256 verification.
-- No test requested a real administrator authorization, put the Mac to sleep,
-  restarted, shut down, logged out, or disconnected networking.
-- Session authorization interaction, lock/unlock, app-relaunch, reboot
-  persistence, and daemon approval behavior were code/simulation/static-
-  validated only; no physical power-lifecycle claim is made.
+- No test put the Mac to sleep, restarted, shut down, logged out, or
+  disconnected networking.
+- Lock/unlock, app-relaunch, reboot persistence, and daemon approval behavior
+  were simulated/static-validated only; no claim of a physical power-lifecycle
+  test is made.
