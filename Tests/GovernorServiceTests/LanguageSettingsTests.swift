@@ -63,5 +63,9 @@ struct LanguageSettingsTests {
             AppText.releaseName("Language preference and rebrand", language: .chinese)
                 == "Governor 改名与语言设置"
         )
+        #expect(
+            AppText.releaseName("Settings accessibility", language: .chinese)
+                == "设置可访问性改进"
+        )
     }
 }

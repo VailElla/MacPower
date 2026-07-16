@@ -78,9 +78,9 @@ assert_contains "$BUILD_SCRIPT" 'GovernorHelperCodeRequirement'
 assert_contains "$BUILD_SCRIPT" 'GovernorPersistentHelperRegistrationSupported'
 assert_contains "$BUILD_SCRIPT" 'GovernorSessionAuthorizationSupported'
 assert_contains "$BUILD_SCRIPT" "GOVERNOR_BUILD_CONFIGURATION"
-assert_contains "$VERSION_FILE" "GOVERNOR_VERSION=0.2.1"
-assert_contains "$VERSION_FILE" "GOVERNOR_BUILD_NUMBER=5"
-assert_contains "$VERSION_FILE" "GOVERNOR_RELEASE_TAG=v0.2.1"
+assert_contains "$VERSION_FILE" "GOVERNOR_VERSION=0.2.2"
+assert_contains "$VERSION_FILE" "GOVERNOR_BUILD_NUMBER=6"
+assert_contains "$VERSION_FILE" "GOVERNOR_RELEASE_TAG=v0.2.2"
 assert_contains "$ROOT_DIR/script/verify_release.sh" "Authority=Developer ID Application:"
 assert_contains "$ROOT_DIR/script/verify_release.sh" "Governor.app"
 assert_contains "$ROOT_DIR/script/verify_release.sh" "GovernorPowerHelper"

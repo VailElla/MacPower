@@ -8,10 +8,10 @@
   根据用户空闲时间与最近 15 秒平均 CPU 使用率，自动切换 macOS 电源模式的菜单栏工具。
 </p>
 
-<p align="center"><strong>v0.2.1 · session authorization bridge · build 5</strong></p>
+<p align="center"><strong>v0.2.2 · settings accessibility · build 6</strong></p>
 
 > [!IMPORTANT]
-> 由 `script/package_test_release.sh` 生成的 v0.2.1 资产明确标记为 `UNNOTARIZED`，可在逐个核验来源与 SHA-256 后手动安装。它们使用 ad-hoc 签名、未经 Apple 公证，不是 Developer ID 签名或受信任发行包，macOS 首次直接打开时会被 Gatekeeper 阻止。Apple 要求含 `SMAppService` LaunchDaemon 的 app 必须经过公证；因此这些手动安装资产不能注册持久 root Helper。build 5 改为在每个 Governor 进程首次启用自动切换时请求一次管理员授权；关闭应用后授权失效，也不会出现在“登录项”。
+> 由 `script/package_test_release.sh` 生成的 v0.2.2 资产明确标记为 `UNNOTARIZED`，可在逐个核验来源与 SHA-256 后手动安装。它们使用 ad-hoc 签名、未经 Apple 公证，不是 Developer ID 签名或受信任发行包，macOS 首次直接打开时会被 Gatekeeper 阻止。Apple 要求含 `SMAppService` LaunchDaemon 的 app 必须经过公证；因此这些手动安装资产不能注册持久 root Helper。build 6 保留每个 Governor 进程首次启用自动切换时请求一次管理员授权的桥接；关闭应用后授权失效，也不会出现在“登录项”。
 
 ## 功能
 
@@ -98,10 +98,10 @@ Governor 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行统
 
 脚本以 Release 配置构建并应用 ad-hoc 签名，确认 Gatekeeper 不会误把它当作受信任发行版；DMG 内含 `Governor.app`、指向 `/Applications` 的拖动安装快捷方式和安全提示。首次启用自动切换时，macOS 会请求管理员授权；授权只在当前 Governor 进程中保留，退出后必须再次授权。当前 Apple Silicon 机器上的示例输出为：
 
-- `release/Governor-v0.2.1-UNNOTARIZED-macOS-arm64.dmg`
-- `release/Governor-v0.2.1-UNNOTARIZED-macOS-arm64.dmg.sha256`
-- `release/Governor-v0.2.1-UNNOTARIZED-macOS.zip`
-- `release/Governor-v0.2.1-UNNOTARIZED-macOS.zip.sha256`
+- `release/Governor-v0.2.2-UNNOTARIZED-macOS-arm64.dmg`
+- `release/Governor-v0.2.2-UNNOTARIZED-macOS-arm64.dmg.sha256`
+- `release/Governor-v0.2.2-UNNOTARIZED-macOS.zip`
+- `release/Governor-v0.2.2-UNNOTARIZED-macOS.zip.sha256`
 
 下载方应先核对 SHA-256，再打开 DMG，把 `Governor.app` 拖到 `Applications`。首次打开会被 macOS 阻止；只有确认下载来源和校验值可信时，才可在“系统设置 → 隐私与安全性”中选择“仍要打开”。这项手动放行只是在当前 Mac 上增加例外，不能替代 Developer ID 签名或 Apple 公证。
 
@@ -109,15 +109,15 @@ Governor 是 Swift Package Manager 管理的 SwiftUI 菜单栏应用。运行统
 
 ```bash
 cd release
-shasum -a 256 -c Governor-v0.2.1-UNNOTARIZED-macOS-arm64.dmg.sha256
-shasum -a 256 -c Governor-v0.2.1-UNNOTARIZED-macOS.zip.sha256
+shasum -a 256 -c Governor-v0.2.2-UNNOTARIZED-macOS-arm64.dmg.sha256
+shasum -a 256 -c Governor-v0.2.2-UNNOTARIZED-macOS.zip.sha256
 ```
 
 SHA-256 只用于发现传输损坏或文件变化，不能证明发布者身份。`UNNOTARIZED` 手动安装包不得被描述为“已签名”“已公证”“Developer ID 可信”“受 Gatekeeper 信任”或“可登记特权 Helper”的正式发行版。该会话授权桥接依赖 Apple 已弃用的 API，未来 macOS 版本可能移除它；不要用终端移除 quarantine 属性或全局关闭 Gatekeeper，只在已核对来源与 SHA-256 后，通过系统设置为这一个 app 创建“仍要打开”例外。
 
 ## 正式 Helper 发行的维护者签名与公证流程
 
-`script/package_release.sh` 是 v0.2.1 持久 Helper 的必需流程，而不是可选的美化步骤。只有 Developer ID 签名、Apple 公证、装订和 Gatekeeper 验证全部通过后，`SMAppService` 才能登记 root daemon；应用仍可免费分发，但维护者必须具备这些 Apple 凭据。它不是对 `UNNOTARIZED` GitHub 资产的信任声明。
+`script/package_release.sh` 是 v0.2.2 持久 Helper 的必需流程，而不是可选的美化步骤。只有 Developer ID 签名、Apple 公证、装订和 Gatekeeper 验证全部通过后，`SMAppService` 才能登记 root daemon；应用仍可免费分发，但维护者必须具备这些 Apple 凭据。它不是对 `UNNOTARIZED` GitHub 资产的信任声明。
 
 ```bash
 export GOVERNOR_SIGNING_IDENTITY='Developer ID Application: Your Name (TEAMID)'
@@ -128,8 +128,8 @@ export GOVERNOR_NOTARY_PROFILE='governor-notary'
 
 该可选流程会构建、核对 Team ID、提交公证、装订票据并运行 Gatekeeper 评估，随后生成：
 
-- `release/Governor-v0.2.1-macOS.zip`
-- `release/Governor-v0.2.1-macOS.zip.sha256`
+- `release/Governor-v0.2.2-macOS.zip`
+- `release/Governor-v0.2.2-macOS.zip.sha256`
 
 SHA-256 文件只用于传输完整性检查，不能证明发布者身份。详细的维护者流程见 [RELEASING.md](RELEASING.md)。
 
@@ -168,9 +168,9 @@ RELEASING.md            手动安装包与可选公证流程
 
 ## 版本
 
-- 当前版本：`0.2.1`（build `5`）
-- 发布标签：`v0.2.1`
-- 版本名称：**Session authorization bridge**
+- 当前版本：`0.2.2`（build `6`）
+- 发布标签：`v0.2.2`
+- 版本名称：**Settings accessibility**
 
 ## 开源许可
 

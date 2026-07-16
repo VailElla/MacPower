@@ -299,14 +299,22 @@ enum AppText {
     }
 
     static func releaseName(_ identifier: String, language: AppLanguage) -> String {
-        guard ["language-settings", "Language preference and rebrand"].contains(identifier) else {
+        switch identifier {
+        case "language-settings", "Language preference and rebrand":
+            return choose(
+                language,
+                english: "Governor rename and language settings",
+                chinese: "Governor 改名与语言设置"
+            )
+        case "Settings accessibility":
+            return choose(
+                language,
+                english: "Settings accessibility",
+                chinese: "设置可访问性改进"
+            )
+        default:
             return identifier
         }
-        return choose(
-            language,
-            english: "Governor rename and language settings",
-            chinese: "Governor 改名与语言设置"
-        )
     }
 
     static func versionLine(
