@@ -15,6 +15,60 @@ struct AutomationSettingsWindowContent: View {
     }
 }
 
+/// Keep the native macOS help tooltip, but also provide an explicit hover
+/// presentation. A plain Image with `.help` is not consistently hit-testable
+/// inside a SwiftUI Form hosted by AppKit, while the button gives the help
+/// affordance a reliable interaction target.
+private struct SettingsInfoIcon: View {
+    let helpText: String
+
+    @State private var isAnchorHovered = false
+    @State private var isPopoverHovered = false
+
+    private var helpPresentationBinding: Binding<Bool> {
+        Binding(
+            get: { isAnchorHovered || isPopoverHovered },
+            set: { isPresented in
+                if !isPresented {
+                    isAnchorHovered = false
+                    isPopoverHovered = false
+                }
+            }
+        )
+    }
+
+    var body: some View {
+        Button {
+            isAnchorHovered = true
+        } label: {
+            Image(systemName: "info.circle")
+                .imageScale(.small)
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(helpText)
+        .accessibilityLabel(helpText)
+        .onHover { isHovering in
+            isAnchorHovered = isHovering
+        }
+        .popover(
+            isPresented: helpPresentationBinding,
+            arrowEdge: .bottom
+        ) {
+            Text(helpText)
+                .multilineTextAlignment(.leading)
+                .frame(width: 320, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(12)
+                .onHover { isHovering in
+                    isPopoverHovered = isHovering
+                }
+        }
+    }
+}
+
 struct AutomationSettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject private var languageSettings = LanguageSettings.shared
@@ -233,13 +287,7 @@ struct AutomationSettingsView: View {
     }
 
     private func settingsInfoIcon(_ helpText: String) -> some View {
-        Image(systemName: "info.circle")
-            .imageScale(.small)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 2)
-            .contentShape(Rectangle())
-            .help(helpText)
-            .accessibilityLabel(helpText)
+        SettingsInfoIcon(helpText: helpText)
     }
 
     private var languageBinding: Binding<AppLanguage> {
