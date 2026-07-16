@@ -30,9 +30,6 @@ struct AutomationSettingsView: View {
                         Text(option.selectionTitle).tag(option)
                     }
                 }
-                Text(AppText.languageHelp(language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section(AppText.automationStatus(language)) {
