@@ -3,6 +3,18 @@ import SwiftUI
 
 /// A full settings window keeps the menu-bar popover focused on status and the
 /// main switch, while presenting the automation rule as a short, readable flow.
+struct AutomationSettingsWindowContent: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        ScrollView(.vertical) {
+            AutomationSettingsView(model: model)
+                .frame(minWidth: 500, maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(minWidth: 500)
+    }
+}
+
 struct AutomationSettingsView: View {
     @ObservedObject var model: AppModel
     @ObservedObject private var languageSettings = LanguageSettings.shared
@@ -189,7 +201,7 @@ struct AutomationSettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        .frame(width: 500)
+        .frame(minWidth: 500, maxWidth: .infinity, alignment: .leading)
         .confirmationDialog(
             AppText.restoreDefaultsConfirmation(language),
             isPresented: $isShowingResetConfirmation,

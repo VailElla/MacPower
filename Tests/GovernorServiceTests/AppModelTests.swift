@@ -22,11 +22,34 @@ struct AppModelTests {
         )
         let settingsWindow = NSApp.windows.first { $0.title == expectedTitle }
         #expect(settingsWindow?.isVisible == true)
+        #expect(settingsWindow?.styleMask.contains(.resizable) == true)
+        #expect(
+            settingsWindow?.contentMinSize
+                == AppLifecycle.automationSettingsMinimumContentSize
+        )
+        #expect(containsScrollView(in: settingsWindow?.contentView))
         AppLifecycle.shared.updateAutomationSettingsWindowTitle(for: .english)
         #expect(settingsWindow?.title == "Automation")
         AppLifecycle.shared.updateAutomationSettingsWindowTitle(for: .chinese)
         #expect(settingsWindow?.title == "自动切换")
         settingsWindow?.close()
+    }
+
+    @Test
+    func automationSettingsInitialSizeStaysWithinAvailableScreenHeight() {
+        let compactScreen = NSRect(x: 0, y: 0, width: 1_280, height: 600)
+        let compactContentSize = AppLifecycle.automationSettingsInitialContentSize(
+            for: compactScreen
+        )
+        let spaciousContentSize = AppLifecycle.automationSettingsInitialContentSize(
+            for: NSRect(x: 0, y: 0, width: 1_280, height: 1_000)
+        )
+
+        #expect(compactContentSize == NSSize(width: 500, height: 552))
+        #expect(
+            spaciousContentSize
+                == AppLifecycle.automationSettingsPreferredContentSize
+        )
     }
 
     @Test
@@ -412,6 +435,12 @@ struct AppModelTests {
 
     private func clearSuite(named suiteName: String) {
         UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+    }
+
+    private func containsScrollView(in view: NSView?) -> Bool {
+        guard let view else { return false }
+        return view is NSScrollView
+            || view.subviews.contains { containsScrollView(in: $0) }
     }
 
     private func eventually(
